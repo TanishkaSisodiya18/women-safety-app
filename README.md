@@ -43,11 +43,10 @@ This app allows users to:
 
 ---
 
-🔧 1. Backend Setup (Flask)
-🐍 Step 1: Setup Python Virtual Environment
-cd backend
+## 🔧 1. Backend Setup (Flask)
+### 🐍 Step 1: Create Virtual Environment
 python -m venv venv
-###🧪 Step 2: Activate Virtual Environment
+ ## 🧪 Step 2: Activate Virtual Environment
 Windows
 venv\Scripts\activate
 Mac/Linux
