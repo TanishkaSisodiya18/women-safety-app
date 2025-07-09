@@ -144,6 +144,8 @@ export default function App() {
 
   return (
     <LinearGradient colors={['#FFDEE9', '#B5FFFC']} style={styles.container}>
+  <Text style={styles.appName}>RAKSHIKA APP</Text>
+
       <Image
         source={require('../../assets/logo.png')}
         style={styles.logo}
@@ -186,6 +188,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  appName: {
+  fontSize: 35,
+  fontWeight: 'bold',
+  color: 'purple',
+  marginBottom: 15,
+  textAlign: 'center',
+},
+
+
+
   logo: {
     width: 150,
     height: 150,
