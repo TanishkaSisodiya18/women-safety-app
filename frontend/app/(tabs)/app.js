@@ -10,12 +10,14 @@ import {
 import { Audio } from 'expo-av';
 import { Accelerometer } from 'expo-sensors';
 import * as Location from 'expo-location';
+import * as FileSystem from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function App() {
   const [sound, setSound] = useState();
   const [location, setLocation] = useState(null);
+  const [recording, setRecording] = useState(null);
 
   async function playSound() {
     const { sound } = await Audio.Sound.createAsync(
@@ -25,14 +27,65 @@ export default function App() {
     await sound.playAsync();
   }
 
+  const sendAudio = async (uri) => {
+    const formData = new FormData();
+    formData.append('audio', {
+      uri,
+      name: 'recording.wav',
+      type: 'audio/wav',
+    });
+
+    try {
+      const response = await fetch('http://192.168.1.8:5000/upload', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      const data = await response.json();
+      console.log('🎙️ Audio Upload Response:', data);
+    } catch (error) {
+      console.error('❌ Error uploading audio:', error);
+    }
+  };
+
+  const recordAndSendAudio = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('❌ Permission to access microphone denied');
+        return;
+      }
+
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(
+        Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
+      );
+      await newRecording.startAsync();
+
+      setRecording(newRecording);
+      console.log('🎙️ Recording started...');
+
+      setTimeout(async () => {
+        await newRecording.stopAndUnloadAsync();
+        const uri = newRecording.getURI();
+        console.log('✅ Recording saved at:', uri);
+        sendAudio(uri);
+      }, 3000); // record for 3 seconds
+
+    } catch (error) {
+      console.error('❌ Recording Error:', error);
+    }
+  };
+
   const sendSOS = () => {
     playSound();
+    recordAndSendAudio();
     console.log('🚨 SOS Triggered!');
 
     if (location) {
       console.log(`📍 Location: ${location.latitude}, ${location.longitude}`);
-
-      // ✅ Corrected fetch call
       fetch('http://192.168.1.8:5000/sos', {
         method: 'POST',
         headers: {
@@ -43,18 +96,25 @@ export default function App() {
           longitude: location.longitude,
         }),
       })
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
           console.log('✅ Server Response:', data);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error('❌ Error sending SOS:', error);
         });
     } else {
       console.log('📍 Location not available');
     }
 
-    Alert.alert('🚨 SOS Triggered!', 'Alert sound played and location sent.');
+    Alert.alert('🚨 SOS Triggered!', 'Alert sound played, audio and location sent.');
+  };
+
+  const handlePress = () => {
+    Alert.alert('Send SOS', 'Are you sure you want to send an SOS?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Send', onPress: () => sendSOS() },
+    ]);
   };
 
   useEffect(() => {
@@ -81,13 +141,6 @@ export default function App() {
       setLocation(loc.coords);
     })();
   }, []);
-
-  const handlePress = () => {
-    Alert.alert('Send SOS', 'Are you sure you want to send an SOS?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Send', onPress: () => sendSOS() },
-    ]);
-  };
 
   return (
     <LinearGradient colors={['#FFDEE9', '#B5FFFC']} style={styles.container}>
@@ -198,4 +251,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-});  
+});
