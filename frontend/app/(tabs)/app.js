@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import {
+  View,
+  Text,
+  Alert,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import { Audio } from 'expo-av';
 import { Accelerometer } from 'expo-sensors';
 import * as Location from 'expo-location';
@@ -9,32 +16,49 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 export default function App() {
   const [sound, setSound] = useState();
   const [location, setLocation] = useState(null);
+
   async function playSound() {
     const { sound } = await Audio.Sound.createAsync(
-      require('../../assets/Beep.mp3') 
+      require('../../assets/Beep.mp3')
     );
     setSound(sound);
     await sound.playAsync();
   }
+
   const sendSOS = () => {
     playSound();
     console.log('🚨 SOS Triggered!');
+
     if (location) {
       console.log(`📍 Location: ${location.latitude}, ${location.longitude}`);
+
+      // ✅ Corrected fetch call
+      fetch('http://192.168.1.8:5000/sos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latitude: location.latitude,
+          longitude: location.longitude,
+        }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('✅ Server Response:', data);
+        })
+        .catch(error => {
+          console.error('❌ Error sending SOS:', error);
+        });
     } else {
       console.log('📍 Location not available');
     }
+
     Alert.alert('🚨 SOS Triggered!', 'Alert sound played and location sent.');
   };
 
-  const handlePress = () => {
-    Alert.alert('Send SOS', 'Are you sure you want to send an SOS?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Send', onPress: () => sendSOS() },
-    ]);
-  }
   useEffect(() => {
-    const subscription = Accelerometer.addListener(data => {
+    const subscription = Accelerometer.addListener((data) => {
       const force = Math.sqrt(data.x ** 2 + data.y ** 2 + data.z ** 2);
       if (force > 1.8) {
         Alert.alert('Shake Detected!', 'Send SOS?', [
@@ -45,6 +69,7 @@ export default function App() {
     });
     return () => subscription.remove();
   }, []);
+
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -57,9 +82,19 @@ export default function App() {
     })();
   }, []);
 
+  const handlePress = () => {
+    Alert.alert('Send SOS', 'Are you sure you want to send an SOS?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Send', onPress: () => sendSOS() },
+    ]);
+  };
+
   return (
     <LinearGradient colors={['#FFDEE9', '#B5FFFC']} style={styles.container}>
-      <Image source={require('../../assets/logo.png')} style={styles.logo} />
+      <Image
+        source={require('../../assets/logo.png')}
+        style={styles.logo}
+      />
 
       <Text style={styles.title}>🛡️ Women Safety App</Text>
 
@@ -84,7 +119,9 @@ export default function App() {
         </View>
       )}
 
-      <Text style={styles.footer}>Made by Tanishka for Hackathon 2025</Text>
+      <Text style={styles.footer}>
+        Made with ❤️ by Tanishka for Hackathon 2025
+      </Text>
     </LinearGradient>
   );
 }
@@ -97,15 +134,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-  width: 150,
-  height: 150,
-  resizeMode: 'contain',
-  marginBottom: 20,
-  borderRadius: 75,
-  borderWidth: 2,
-  borderColor: '#C70039',
-},
-
+    width: 150,
+    height: 150,
+    resizeMode: 'contain',
+    marginBottom: 20,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderColor: '#C70039',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -162,4 +198,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-});
+});  
